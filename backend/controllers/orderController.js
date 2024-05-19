@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 //placing user oder for frontend
 const placeOrder = async(req,res) =>{
-    const frontend_url = "http://localhost:5173";
+    const frontend_url = "http://localhost:5174";
     try {
         const {userId,items,amount,address} = req.body
         const newOrder = new orderModel({
@@ -59,4 +59,57 @@ const placeOrder = async(req,res) =>{
     }
 }
 
-export{placeOrder}
+const verifyOrder = async(req,res) =>{
+    const {orderId, success} = req.body
+    try {
+        if(success==="true"){
+            await orderModel.findByIdAndUpdate(orderId,{payment:true});
+            res.status(200).json({success:true,message:"Paid"})
+        }else{
+            await orderModel.findByIdAndDelete(orderId);
+            res.status(200).json({success:false,message:"Not Paid"})
+        }
+    } catch (error) {
+        console.log("Error in verify payment controller",error);
+        res.status(500).json({success:false, message:"Error"})
+    }
+}
+
+
+//user order
+const userOrder = async(req,res)=>{
+    try {
+        const orders = await orderModel.find({userId:req.body.userId});
+        res.status(200).json({success:true,data:orders})
+    } catch (error) {
+        console.log("Error in userorders controllers",error);
+        res.status(500).json({success:false,message:"error"})
+    }
+}
+
+// all orders of all users for admin
+
+const listOrders = async(req,res) =>{
+    try {
+        const orders = await orderModel.find({});
+        res.status(200).json({success:true,data:orders})
+    } catch (error) {
+        console.log("Error in order list controller",error);
+        res.status(500).json({success:false,message:"Internal server error"})
+    }
+}
+
+//api for updating order status
+
+const updateStatus = async(req,res) =>{
+    try {
+        await orderModel.findByIdAndUpdate(req.body.orderId,{status:req.body.status});
+        res.status(200).json({success:true,message:"Status updated"})
+
+    } catch (error) {
+        console.log("Error in updateStatus controller ",error)
+        res.status(500).json({success:false,message:"Internal server error"})
+    }
+}
+
+export{placeOrder,verifyOrder,userOrder,listOrders,updateStatus}
